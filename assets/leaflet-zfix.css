@@ -1,0 +1,13 @@
+.leaflet-popup {
+  z-index: 1001;
+}
+
+.leaflet-popup, .leaflet-popup-content-wrapper, .leaflet-popup-content {
+  pointer-events: auto;
+}
+
+/* Ensure search bar is always on top and interactive, no !important */
+body #search-bar-zfix {
+  z-index: 1002;
+  pointer-events: auto;
+}

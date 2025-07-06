@@ -3,5 +3,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
-  css: ['@/assets/tailwind.css'],
+  tailwindcss: {
+    cssPath: '~/assets/tailwind.css',
+    configPath: 'tailwind.config',
+    exposeConfig: false,
+    exposeLevel: 2,
+    injectPosition: 'first',
+    viewer: true,
+  },
+  // css: ['@/assets/tailwind.css'],
 })

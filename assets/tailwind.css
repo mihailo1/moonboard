@@ -1,3 +1,20 @@
 @import "tailwindcss";
 
-@import './tw-classes.css';
+:root {
+  --color-primary: #4F46E5;
+  --color-secondary: #F59E42;
+  --color-background: #FFFFFF;
+  --color-surface: #F3F4F6;
+  --color-accent: #10B981;
+  --color-text: #18181B;
+  --color-border: #E5E7EB;
+}
+.dark {
+  --color-primary: #6366F1;
+  --color-secondary: #FBBF24;
+  --color-background: #181A1B;
+  --color-surface: #232526;
+  --color-accent: #34D399;
+  --color-text: #F3F4F6;
+}
+
