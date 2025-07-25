@@ -15,10 +15,9 @@
             class="w-12 h-4 flex items-center justify-center relative"
           >
             <button
-              class="absolute left-0 top-[-14px] w-12 h-10 cursor-pointer z-10"
+              class="absolute left-0 top-[-14px] w-12 h-10 cursor-pointer z-10 bg-transparent border-none p-0"
               @click="menuOpen = false"
               aria-label="Close drawer"
-              style="background: transparent; border: none; padding: 0;"
             ></button>
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full pointer-events-none"></div>
           </div>
