@@ -1,11 +1,12 @@
+
 <template>
-  <div
+  <div v-if="mounted"
     id="search-bar-zfix"
     class="search-bar-root"
     @keydown.stop
   >
     <div :class="[
-      'flex items-center rounded-2xl px-3 py-1.5 gap-2 shadow-lg',
+      'flex items-center rounded-2xl px-3 py-1.5 gap-2 shadow-lg backdrop-blur-[2px]',
       isDark ? 'bg-gray-800/70 border border-gray-700' : 'bg-white/70 border border-neutral-200'
     ]">
       <span :class="isDark ? 'text-gray-300' : 'text-neutral-400'">
@@ -70,7 +71,7 @@ const query = ref('');
 const isFocused = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 const activeIndex = ref(-1);
-
+const mounted = ref(false);
 const iconColor = computed(() => isDark.value ? '#fff' : '#222');
 
 const suggestions = computed(() => {
@@ -112,6 +113,7 @@ const keyListener = (e: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', keyListener);
+  mounted.value = true;
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', keyListener);
