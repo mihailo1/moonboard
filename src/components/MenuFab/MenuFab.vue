@@ -1,12 +1,28 @@
 <template>
-  <div v-if="mounted" :class="[isMobile ? 'fixed bottom-6 left-6 right-auto top-auto' : 'absolute top-6 right-6', 'z-[1000] flex flex-col items-end']">
+  <div v-if="mounted" :class="[isMobile ? 'fixed bottom-6 left-6 right-auto top-auto' : 'absolute top-6 right-6', 'z-[1099] flex flex-col items-end']">
     <button :class="['w-16 h-16 rounded-full cursor-pointer flex items-center justify-center shadow-lg transition border-none outline-none', isDark ? 'bg-gray-800' : 'bg-white']" @click="toggleMenu">
       <span :class="['menu-icon', { open: menuOpen }, isDark ? 'menu-icon-dark' : '']">
       </span>
     </button>
+    <!-- Overlay for mobile when drawer is open -->
+    <transition name="overlay-fade">
+      <div v-if="isMobile && menuOpen" class="fixed inset-0 bg-transparent backdrop-blur-[1px] z-[1099]" @click="menuOpen = false" aria-label="Close drawer overlay"></div>
+    </transition>
     <transition name="menu-unfold">
-      <div v-if="menuOpen" :class="[isMobile ? 'fixed left-0 bottom-0 w-full h-[60vh] rounded-t-2xl shadow-2xl px-4 pt-6 pb-4 flex flex-col items-center bg-white dark:bg-gray-800 z-[1100] menu-bottom-sheet' : 'menu-fab-menu mt-4 rounded-xl shadow-2xl px-8 pt-8 pb-6 min-w-[220px] flex flex-col items-center', isDark ? 'bg-gray-800' : 'bg-white']" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
-        <div v-if="isMobile" class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mb-12 mx-auto"></div>
+      <div v-if="menuOpen" :class="[isMobile ? 'fixed left-0 bottom-0 w-full h-[60vh] rounded-t-2xl shadow-2xl px-4 pt-4 pb-4 flex flex-col items-center z-[1100] menu-bottom-sheet' : 'menu-fab-menu mt-4 rounded-xl shadow-2xl px-8 pt-8 pb-6 min-w-[220px] flex flex-col items-center', isDark ? 'bg-gray-800' : 'bg-white']" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+        <div v-if="isMobile" class="w-full flex justify-center mb-6">
+          <div
+            class="w-12 h-4 flex items-center justify-center relative"
+          >
+            <button
+              class="absolute left-0 top-[-14px] w-12 h-10 cursor-pointer z-10"
+              @click="menuOpen = false"
+              aria-label="Close drawer"
+              style="background: transparent; border: none; padding: 0;"
+            ></button>
+            <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full pointer-events-none"></div>
+          </div>
+        </div>
         <div class="theme-toggle flex items-center gap-4 text-lg font-medium">
           <span :class="['theme-toggle-span text-gray-400 min-w-12 text-center transition-colors', { 'theme-toggle-span-active': !isDark, 'text-gray-900': !isDark, 'text-white': isDark }]">light</span>
           <label class="switch">
@@ -37,8 +53,8 @@
           class="mt-4"
         />
       </div>
-    </transition>
-  </div>
+  </transition>
+</div>
 </template>
 
 <script setup lang="ts">
@@ -141,6 +157,16 @@ onUpdated(() => {
 </script>
 
 <style scoped>
+/* Overlay fade transition */
+.overlay-fade-enter-active, .overlay-fade-leave-active {
+  transition: opacity 0.25s;
+}
+.overlay-fade-enter-from, .overlay-fade-leave-to {
+  opacity: 0;
+}
+.overlay-fade-enter-to, .overlay-fade-leave-from {
+  opacity: 1;
+}
 .menu-icon {
   width: 32px;
   height: 4px;
