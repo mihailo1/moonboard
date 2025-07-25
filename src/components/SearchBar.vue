@@ -72,8 +72,6 @@ const isFocused = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 const activeIndex = ref(-1);
 const mounted = ref(false);
-console.log('isDark Searchbar', isDark.value);
-
 const iconColor = computed(() => isDark.value ? '#fff' : '#222');
 
 const suggestions = computed(() => {
