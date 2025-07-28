@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+  // TODOS: add city search, get rid of unused extra components dir
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useTheme } from '~/lib/composables/useTheme';
 import { markers as allMarkers } from '~/lib/markers';
