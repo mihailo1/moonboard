@@ -36,7 +36,16 @@ App runs at http://localhost:3000
 - `src/components/MenuFab/MenuFab.vue` — Floating action button, opens filter & theme menu
 - `src/components/SearchBar.vue` — Search input
 - `src/components/FilterSelect.vue` — Custom select for filtering
-- `lib/markers.ts` — List of gyms (title, coords, layout, angle, links)
+ - `lib` — Database-backed markers are now read from the Realtime Database; the previous local `lib/markers.ts` file has been removed.
+
+### proposedMarkers (Realtime DB)
+
+This project uses a Realtime Database top-level node called `markers` for the
+approved dataset rendered in the app. There's also a separate top-level node
+`proposedMarkers` intended for user-submitted suggestions. Entries in
+`proposedMarkers` include review metadata (`status`, `submittedAt`,
+`submittedBy`) and should be reviewed/approved before moving them into the
+public `markers` node.
 
 ## Tech Stack
 

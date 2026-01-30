@@ -14,6 +14,14 @@
       v-model:angleValue="selectedAngle"
       v-model:isDark="isDark"
       @toggle-theme="toggleTheme"
+      @open-add-marker="showAddForm = true"
+    />
+    <AddMarkerFab @open="showAddForm = true" />
+    <AddMarkerForm
+      :show="showAddForm"
+      :googleApiKey="googleApiKey"
+      @close="showAddForm = false"
+      @submit="handleAddMarker"
     />
     <SearchBar @select="onSearchSelect" />
     <div id="leaflet-map"></div>
@@ -23,19 +31,33 @@
 <script setup lang="ts">
 import { onMounted, watch, ref } from "vue";
 import MenuFab from "~/src/components/MenuFab/MenuFab.vue";
-import SearchBar from '~/src/components/SearchBar.vue';
+import SearchBar from "~/src/components/SearchBar.vue";
+import AddMarkerFab from "~/src/components/AddMarkerFab.vue";
+import AddMarkerForm from "~/src/components/AddMarkerForm.vue";
 import { useTheme } from "~/lib/composables/useTheme";
-import { markers as allMarkers } from "~/lib/markers";
-import type { Marker } from '~/types';
+import { useRuntimeConfig } from "#app";
+import { useMarkers } from "~/lib/composables/useMarkers";
+// markers will be loaded from Firebase (with local fallback)
+import type { Marker } from "~/types";
 
 const { isDark } = useTheme();
+const runtimeConfig = useRuntimeConfig();
+const googleApiKey: string = String(
+  runtimeConfig.public?.googleMapsApiKey || "",
+);
 
 let map: any = null;
 let tileLayer: any = null;
 let markerList: any[] = [];
 
-const selectedLayout = ref("");
+const selectedLayout = ref<string[]>([]);
 const selectedAngle = ref("");
+const showAddForm = ref(false);
+
+// baseMarkers holds the original markers plus any added by the user
+const baseMarkers = ref<Marker[]>([] as Marker[]);
+
+const { markers: fetchedMarkers } = useMarkers();
 
 const lightTile =
   "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
@@ -61,7 +83,8 @@ const clearMarkers = () => {
 
 // Move iconColor and iconStyle outside renderMarkers
 const iconColor = "#444";
-const iconStyle = "width:16px;height:16px;display:inline-block;vertical-align:middle;";
+const iconStyle =
+  "width:16px;height:16px;display:inline-block;vertical-align:middle;";
 
 // Extract SVG marker icon generator
 function getDropIconSvg(fill: string) {
@@ -94,8 +117,8 @@ const renderMarkers = (markers: Marker[]) => {
       <div style=\"min-width:180px;\">
         <div style=\"font-weight:bold;font-size:1.1em;\">${data.title}</div>
         <hr style=\"margin:8px 0 6px 0; border:none; border-top:1px solid #e5e7eb;\" />
-        <div style=\"margin-top:2px;\">${Array.isArray(data.layout) && data.layout.length > 1 ? 'Layouts' : 'Layout'}: ${data.layout.join(', ')}</div>
-        <div style=\"margin-top:6px;\">Angle: ${data.angle.map((a: string) => a + '°').join(', ')}</div>
+        <div style=\"margin-top:2px;\">${Array.isArray(data.layout) && data.layout.length > 1 ? "Layouts" : "Layout"}: ${data.layout.join(", ")}</div>
+        <div style=\"margin-top:6px;\">Angle: ${data.angle.map((a: string) => a + "°").join(", ")}</div>
         <div style=\"margin-top:10px;display:flex;align-items:center;gap:4px;\">${webIcon}${instaIcon}</div>
       </div>
     `;
@@ -108,9 +131,11 @@ const renderMarkers = (markers: Marker[]) => {
 };
 
 const filterMarkers = () => {
-  let filtered = allMarkers;
-  if (selectedLayout.value) {
-    filtered = filtered.filter((m) => m.layout.includes(selectedLayout.value));
+  let filtered = baseMarkers.value;
+  if (Array.isArray(selectedLayout.value) && selectedLayout.value.length > 0) {
+    filtered = filtered.filter((m) =>
+      m.layout.some((l: string) => selectedLayout.value.includes(l)),
+    );
   }
   if (selectedAngle.value) {
     filtered = filtered.filter((m) => m.angle.includes(selectedAngle.value));
@@ -118,7 +143,22 @@ const filterMarkers = () => {
   renderMarkers(filtered);
 };
 
+function handleAddMarker(marker: Marker) {
+  baseMarkers.value.push(marker);
+  filterMarkers();
+}
+
 watch([selectedLayout, selectedAngle], filterMarkers);
+
+// when fetched markers change populate baseMarkers
+watch(
+  fetchedMarkers,
+  (v) => {
+    baseMarkers.value = Array.isArray(v) ? v.slice() : [];
+    filterMarkers();
+  },
+  { immediate: true },
+);
 
 onMounted(async () => {
   if (process.client) {
@@ -133,17 +173,21 @@ onMounted(async () => {
       .addTo(map);
     window.L = L.default; // for theme switching
     // Move zoom control to bottom right
-    map.zoomControl.setPosition('bottomright');
-    renderMarkers(allMarkers);
+    map.zoomControl.setPosition("bottomright");
+    renderMarkers(baseMarkers.value);
     // Слежение за темой для смены цвета маркеров
     watch(isDark, (val) => {
-      markerList.forEach((marker) => marker.setIcon(window.L.icon({
-        iconUrl: getDropIconSvg(val ? "white" : "black"),
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
-        className: "custom-drop-marker",
-      })));
+      markerList.forEach((marker) =>
+        marker.setIcon(
+          window.L.icon({
+            iconUrl: getDropIconSvg(val ? "white" : "black"),
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32],
+            className: "custom-drop-marker",
+          }),
+        ),
+      );
     });
   }
 });
@@ -157,7 +201,7 @@ function onSearchSelect(marker: any) {
   map.flyTo(marker.coords, targetZoom, { animate: true });
   // Find the marker instance by coords
   setTimeout(() => {
-    const found = markerList.find(m => {
+    const found = markerList.find((m) => {
       const latlng = m.getLatLng();
       return latlng.lat === marker.coords[0] && latlng.lng === marker.coords[1];
     });

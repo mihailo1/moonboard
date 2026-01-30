@@ -9,7 +9,7 @@
       <div v-if="isMobile && menuOpen" class="fixed inset-0 bg-transparent backdrop-blur-[1px] z-[1099]" @click="menuOpen = false" aria-label="Close drawer overlay"></div>
     </transition>
     <transition name="menu-unfold">
-      <div v-if="menuOpen" :class="[isMobile ? 'fixed left-0 bottom-0 w-full h-[60vh] rounded-t-2xl shadow-2xl px-4 pt-4 pb-4 flex flex-col items-center z-[1100] menu-bottom-sheet' : 'menu-fab-menu mt-4 rounded-xl shadow-2xl px-8 pt-8 pb-6 min-w-[220px] flex flex-col items-center', isDark ? 'bg-gray-800' : 'bg-white']" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+      <div v-if="menuOpen" :class="[isMobile ? 'fixed left-0 bottom-0 w-full h-[60vh] rounded-t-2xl shadow-2xl px-4 pt-4 pb-4 flex flex-col items-center z-[1100] menu-bottom-sheet' : 'menu-fab-menu mt-4 rounded-xl shadow-2xl px-8 pt-8 pb-6 min-w-[220px] max-w-[280px] flex flex-col items-center', isDark ? 'bg-gray-800' : 'bg-white']" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
         <div v-if="isMobile" class="w-full flex justify-center mb-6">
           <div
             class="w-12 h-4 flex items-center justify-center relative"
@@ -30,12 +30,12 @@
           </label>
           <span :class="['theme-toggle-span text-gray-400 min-w-12 text-center transition-colors', { 'theme-toggle-span-active': isDark, 'text-gray-900': isDark, 'text-white': isDark }]">dark</span>
         </div>
-        <FilterSelect
+        <MultiFilterSelect
           id="layout-select"
           :label="'Layout'"
           :allLabel="'All layouts'"
           :options="layouts"
-          :modelValue="modelValue"
+          :modelValue="Array.isArray(modelValue) ? modelValue : (modelValue ? [modelValue] : [])"
           @update:modelValue="$emit('update:modelValue', $event)"
           :isDark="isDark"
           class="mt-6"
@@ -51,6 +51,9 @@
           suffix="°"
           class="mt-4"
         />
+        <div class="w-full mt-4">
+          <button @click="$emit('open-add-marker')" class="w-full px-4 py-2 rounded-lg bg-green-600 text-white">Add marker</button>
+        </div>
       </div>
   </transition>
 </div>
@@ -59,12 +62,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useTheme } from '~/lib/composables/useTheme'
-import { markers } from '~/lib/markers'
+import { useMarkers } from '~/lib/composables/useMarkers'
 import FilterSelect from "../FilterSelect.vue"
+import MultiFilterSelect from "../MultiFilterSelect.vue"
 
+import type { PropType } from 'vue'
 const props = defineProps({
   modelValue: {
-    type: String,
+    type: [String, Array] as PropType<string | string[]>,
     default: ''
   },
   angleValue: {
@@ -72,19 +77,20 @@ const props = defineProps({
     default: ''
   }
 })
-const emit = defineEmits(['update:modelValue', 'toggle-theme', 'update:angleValue'])
+const emit = defineEmits(['update:modelValue', 'toggle-theme', 'update:angleValue', 'open-add-marker'])
 
 const { isDark } = useTheme()
 const menuOpen = ref(false)
 const mounted = ref(false)
 
+const { markers: fetchedMarkers } = useMarkers()
+
 const layouts = computed(() => {
-  // Flatten all layouts and deduplicate
-  const all = markers.flatMap(m => m.layout)
+  const all = (fetchedMarkers.value || []).flatMap((m: any) => m.layout || [])
   return Array.from(new Set(all))
 })
 const angles = computed(() => {
-  const all = markers.flatMap(m => m.angle)
+  const all = (fetchedMarkers.value || []).flatMap((m: any) => m.angle || [])
   return Array.from(new Set(all))
 })
 
