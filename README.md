@@ -36,7 +36,7 @@ App runs at http://localhost:3000
 - `src/components/MenuFab/MenuFab.vue` — Floating action button, opens filter & theme menu
 - `src/components/SearchBar.vue` — Search input
 - `src/components/FilterSelect.vue` — Custom select for filtering
-- `lib/markers.ts` — List of gyms (title, coords, layout, angle, links)
+ - `lib` — Database-backed markers are now read from the Realtime Database; the previous local `lib/markers.ts` file has been removed.
 
 ### proposedMarkers (Realtime DB)
 

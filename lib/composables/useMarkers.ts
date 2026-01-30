@@ -1,9 +1,9 @@
 import { ref } from "vue";
 import { useRuntimeConfig } from "#app";
-import { markers as fallbackMarkers } from "~/lib/markers";
+// No local fallback: rely exclusively on the Realtime Database
 
 export function useMarkers() {
-  const markers = ref<any[]>(fallbackMarkers.slice());
+  const markers = ref<any[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -26,7 +26,7 @@ export function useMarkers() {
       }
       const body = await res.json();
       if (!body) {
-        markers.value = fallbackMarkers.slice();
+        markers.value = []
       } else if (Array.isArray(body)) {
         markers.value = body;
       } else {
@@ -35,8 +35,8 @@ export function useMarkers() {
       }
     } catch (err: any) {
       error.value = err?.message || String(err);
-      // keep fallback markers
-      markers.value = fallbackMarkers.slice();
+      // no local fallback; keep an empty markers array on error
+      markers.value = []
     } finally {
       loading.value = false;
     }
