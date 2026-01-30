@@ -38,6 +38,15 @@ App runs at http://localhost:3000
 - `src/components/FilterSelect.vue` — Custom select for filtering
 - `lib/markers.ts` — List of gyms (title, coords, layout, angle, links)
 
+### proposedMarkers (Realtime DB)
+
+This project uses a Realtime Database top-level node called `markers` for the
+approved dataset rendered in the app. There's also a separate top-level node
+`proposedMarkers` intended for user-submitted suggestions. Entries in
+`proposedMarkers` include review metadata (`status`, `submittedAt`,
+`submittedBy`) and should be reviewed/approved before moving them into the
+public `markers` node.
+
 ## Tech Stack
 
 - [Nuxt 3](https://nuxt.com/) (Vue 3, Vite)

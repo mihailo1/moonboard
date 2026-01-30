@@ -91,7 +91,7 @@ export const markers = [
     coords: [50.856788381871205, 5.682432886939089],
     title: "Radium Boulders",
     layout: ["MBM 2019"],
-    angle: ["40"],
+    angle: ["40", "25"],
     website: "https://www.radiumboulders.nl/",
     instagram: "https://www.instagram.com/radiumboulders/",
   },
