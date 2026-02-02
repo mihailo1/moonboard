@@ -138,7 +138,12 @@
       <div class="mt-4 w-full flex flex-col sm:flex-row sm:justify-end items-center gap-3">
         <button
           type="button"
-          class="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-offset-0 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700 cursor-pointer"
+          :class="[
+            'w-full sm:w-auto px-4 py-2.5 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-offset-0 cursor-pointer',
+            isDark
+              ? 'bg-gray-800 text-white border border-gray-700 hover:bg-gray-700'
+              : 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50',
+          ]"
           @click="$emit('close')"
         >
           Cancel
@@ -153,11 +158,13 @@
             tabindex="0"
             :aria-disabled="submitting"
             :class="[
-                'w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-white shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 border-[0.5px] cursor-pointer',
-                submitting
-                  ? 'bg-primary/60 border-primary/60 border-[0.5px] opacity-70 cursor-not-allowed pointer-events-none'
-                  : 'bg-primary border-primary border-[0.5px] hover:bg-gray-50 dark:hover:bg-gray-700 active:shadow-inner active:border-primary-dark',
-              ]"
+              'w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 border-[0.5px] cursor-pointer',
+              submitting
+                ? 'opacity-70 cursor-not-allowed pointer-events-none'
+                : isDark
+                  ? 'bg-white text-gray-800 border-white hover:bg-gray-200 active:shadow-inner'
+                  : 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700 active:shadow-inner',
+            ]"
             @keydown.enter.prevent="onSubmit"
             @keydown.space.prevent="onSubmit"
           >
@@ -522,6 +529,8 @@ const anglesOptions = computed(() => {
   unique.sort((a, b) => Number(a) - Number(b));
   return unique;
 });
+
+// (cancelStyle removed) Cancel styles handled via responsive classes so hover works in light theme
 
 watch(
   () => props.show,
