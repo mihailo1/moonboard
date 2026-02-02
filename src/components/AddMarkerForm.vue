@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="show"
-    class="fixed inset-0 z-[1300] flex items-center justify-center"
+    class="fixed inset-0 z-[1300] flex items-end sm:items-center justify-center p-0 sm:p-4"
   >
     <div
       class="absolute inset-0 bg-black opacity-40"
@@ -10,7 +10,11 @@
     <form
       @submit.prevent="onSubmit"
       :class="[
-        'relative z-10 rounded-lg shadow-lg w-full max-w-md p-6',
+        'relative z-10 w-full max-w-full sm:max-w-md p-6',
+        // full-screen on small devices, modal on larger screens
+        'h-full sm:h-auto rounded-none sm:rounded-lg p-0 sm:p-6 max-h-[100vh] sm:max-h-[90vh] overflow-auto',
+        // remove heavy shadow/frame on mobile, keep on larger screens
+        'sm:shadow-lg',
         isDark ? 'bg-gray-800' : 'bg-white',
       ]"
     >
@@ -25,14 +29,16 @@
       <div class="grid gap-3">
         <label
           :class="[
-            'block mb-2 text-base font-semibold tracking-wide',
+            'block text-base font-semibold tracking-wide',
             isDark ? 'text-white' : 'text-gray-800',
           ]"
-          >Google Maps URL
+          >
+          Google Maps URL
+          <span :class="isDark ? 'text-red-400 ml-1' : 'text-red-500 ml-1'" aria-hidden="true">*</span>
           <input
             v-model="googleUrl"
             @input="onUrlInput"
-            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors"
+            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
             :class="[
               isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800',
               urlError
@@ -44,6 +50,7 @@
             placeholder="https://www.google.com/maps/place/..."
             :aria-invalid="!!urlError"
             :aria-describedby="urlError ? 'url-error' : undefined"
+            aria-required="true"
           />
           <div
             v-if="urlError"
@@ -64,6 +71,7 @@
           <MultiFilterSelect
             id="add-layouts"
             :label="'Layouts'"
+            :required="true"
             :options="layoutsOptions"
             :modelValue="selectedLayouts"
             @update:modelValue="onUpdateLayoutsClear"
@@ -80,6 +88,7 @@
           <MultiFilterSelect
             id="add-angles"
             :label="'Angles'"
+            :required="true"
             :options="anglesOptions"
             :modelValue="selectedAngles"
             @update:modelValue="onUpdateAnglesClear"
@@ -95,13 +104,13 @@
         </div>
         <label
           :class="[
-            'block mb-2 text-base font-semibold tracking-wide',
+            'block text-base font-semibold tracking-wide',
             isDark ? 'text-white' : 'text-gray-800',
           ]"
           >Website
           <input
             v-model="website"
-            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors"
+            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
             :class="
               isDark
                 ? 'bg-gray-800 border-gray-700 text-white'
@@ -111,13 +120,13 @@
         </label>
         <label
           :class="[
-            'block mb-2 text-base font-semibold tracking-wide',
+            'block text-base font-semibold tracking-wide',
             isDark ? 'text-white' : 'text-gray-800',
           ]"
           >Instagram
           <input
             v-model="instagram"
-            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors"
+            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
             :class="
               isDark
                 ? 'bg-gray-800 border-gray-700 text-white'
@@ -126,30 +135,34 @@
           />
         </label>
       </div>
-      <div class="mt-4 flex justify-end items-center gap-3">
+      <div class="mt-4 w-full flex flex-col sm:flex-row sm:justify-end items-center gap-3">
         <button
           type="button"
-          class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
+          class="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-offset-0 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700 cursor-pointer"
           @click="$emit('close')"
         >
           Cancel
         </button>
-        <div class="flex flex-col items-end">
+        <div class="flex flex-col items-end w-full sm:w-auto">
           <div v-if="submitError" class="text-sm text-red-500 mb-2">
             {{ submitError }}
           </div>
           <button
             type="submit"
             :disabled="submitting"
+            tabindex="0"
+            :aria-disabled="submitting"
             :class="[
-              'px-4 py-2 rounded-lg text-white shadow-sm',
-              submitting
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700',
-            ]"
+                'w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-white shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 border-[0.5px] cursor-pointer',
+                submitting
+                  ? 'bg-primary/60 border-primary/60 border-[0.5px] opacity-70 cursor-not-allowed pointer-events-none'
+                  : 'bg-primary border-primary border-[0.5px] hover:bg-gray-50 dark:hover:bg-gray-700 active:shadow-inner active:border-primary-dark',
+              ]"
+            @keydown.enter.prevent="onSubmit"
+            @keydown.space.prevent="onSubmit"
           >
             <span v-if="submitting">Submitting…</span>
-            <span v-else>Add</span>
+            <span v-else>Submit</span>
           </button>
         </div>
       </div>
@@ -158,7 +171,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onBeforeUnmount } from "vue";
+import showToast from '~/src/composables/useToast'
+import { incrementSubmitCount, canSubmitToday } from '~/src/composables/useSubmitQuota'
 import { useTheme } from "~/lib/composables/useTheme";
 import type { Marker } from "~/types";
 import MultiFilterSelect from "~/src/components/MultiFilterSelect.vue";
@@ -209,6 +224,12 @@ const googleLoaded = ref(false);
 let autocompleteService: any = null;
 let placesService: any = null;
 const resolving = ref(false);
+
+const onEscClose = (e: KeyboardEvent) => {
+  if (e.key === "Escape") {
+    emit("close");
+  }
+};
 
 function loadGooglePlaces(key: string) {
   return new Promise<void>((resolve, reject) => {
@@ -492,13 +513,24 @@ const layoutsOptions = computed(() =>
     new Set((markers.value || []).flatMap((m: any) => m.layout || [])),
   ),
 );
-const anglesOptions = computed(() =>
-  Array.from(new Set((markers.value || []).flatMap((m: any) => m.angle || []))),
-);
+const anglesOptions = computed(() => {
+  const raw = (markers.value || []).flatMap((m: any) => m.angle || []);
+  // normalize to strings to avoid duplicates like 40 and '40', then dedupe
+  const normalized = raw.map((v: any) => String(v).trim());
+  const unique = Array.from(new Set(normalized));
+  // sort numerically when possible
+  unique.sort((a, b) => Number(a) - Number(b));
+  return unique;
+});
 
 watch(
   () => props.show,
   (v) => {
+    if (v) {
+      window.addEventListener("keydown", onEscClose);
+    } else {
+      window.removeEventListener("keydown", onEscClose);
+    }
     if (!v) {
       // reset fields when closed
       title.value = "";
@@ -524,6 +556,10 @@ watch(
     }
   },
 );
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onEscClose);
+});
 
 function onUpdateLayouts(val: string[]) {
   selectedLayouts.value = Array.isArray(val) ? val : [];
@@ -603,7 +639,14 @@ async function onSubmit() {
     // eslint-disable-next-line no-console
     console.log("Proposed marker uploaded, key=", resBody.name);
 
-    // emit submit so the app can optimistically add the marker locally
+    // increment quota, show success toast, emit submit and close
+    // final quota check (in case form was opened directly)
+    if (!canSubmitToday()) {
+      showToast('You have reached 5 submits today. Please try again tomorrow.', 'error')
+      return
+    }
+    try { incrementSubmitCount() } catch (e) { /* ignore */ }
+    showToast(`${titleText} — Thanks! Your submission will be reviewed and approved soon.`, 'success')
     emit("submit", marker);
     emit("close");
   } catch (err: any) {

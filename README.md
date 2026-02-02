@@ -11,7 +11,9 @@ A Nuxt 3 + Vue 3 web app for exploring MoonBoards in bouldering gyms, with filte
 - 🏷️ Filter by layout and wall angle
 - 🌓 Light/Dark theme toggle (remembers your choice)
 - 📱 Responsive, mobile-friendly UI
-- 🗺️ Map markers with gym info and links
+- 🗺️ Live map markers served from a Firebase Realtime Database
+- ✉️ Submit proposed markers (stored under `proposedMarkers`) for review
+- 🛠️ Admin review UI and upload helper scripts for managing the canonical `markers` dataset
 
 ## Quick Start
 
@@ -30,13 +32,18 @@ yarn dev
 App runs at http://localhost:3000
 
 ## Project Structure
-
+ 
 - `app.vue` — App entry, renders the map
 - `components/MapLeaflet.vue` — Main map UI, shows gyms, handles theme, search, and filters
-- `src/components/MenuFab/MenuFab.vue` — Floating action button, opens filter & theme menu
-- `src/components/SearchBar.vue` — Search input
-- `src/components/FilterSelect.vue` — Custom select for filtering
- - `lib` — Database-backed markers are now read from the Realtime Database; the previous local `lib/markers.ts` file has been removed.
+- `src/components/` — UI components used by the app (see `src/components/*` for `AddMarkerFab`, `AddMarkerForm`, `FilterSelect`, `MultiFilterSelect`, `SearchBar`, `MenuFab`)
+- `lib/composables/` — composables such as `useMarkers.ts` and `useTheme.ts` (database hooks and theme handling)
+- `pages/` — `index.vue` (public map) and `admin.vue` (marker review / admin tools)
+- `scripts/` — helper scripts for uploads and Firebase setup (`firebase.ts`, `upload-markers.ts`, `upload-markers-rest.js`, `upload-proposed-marker.js`)
+- `server/api/` — simple server endpoints (e.g. `resolve-map-url.post.ts`)
+- `types/` — TypeScript types
+- `assets/`, `public/`, and other standard Nuxt folders
+
+Note: the app now reads its approved dataset from a Firebase Realtime Database top-level node `markers`. A separate `proposedMarkers` node is used for user-submitted suggestions that must be reviewed before promotion.
 
 ### proposedMarkers (Realtime DB)
 
@@ -52,3 +59,4 @@ public `markers` node.
 - [Nuxt 3](https://nuxt.com/) (Vue 3, Vite)
 - [Leaflet.js](https://leafletjs.com/) (interactive maps)
 - [Tailwind CSS](https://tailwindcss.com/) (utility-first styling)
+- [Firebase Realtime Database](https://firebase.google.com/products/realtime-database) (markers + proposedMarkers)

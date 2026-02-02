@@ -1,9 +1,11 @@
 <template>
   <NuxtPage />
+  <ToastContainer />
 </template>
 
 <script setup lang="ts">
 // Root app now delegates to page components via Nuxt routing
+import ToastContainer from '~/src/components/ToastContainer.vue'
 </script>
 
 <style>

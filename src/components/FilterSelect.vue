@@ -1,13 +1,13 @@
 <template>
-  <div class="filter-select w-full flex flex-col items-start">
+  <div ref="root" class="filter-select w-full flex flex-col items-start">
     <label
-      :for="id"
-      class="block mb-2 text-base font-semibold tracking-wide"
+      class="block mb-2 text-base font-semibold tracking-wide cursor-default"
       :class="isDark ? 'text-white' : 'text-gray-800'"
       >{{ label }}</label
     >
     <div class="relative w-full">
       <button
+        :id="id"
         type="button"
         class="appearance-none w-full rounded-lg px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-colors duration-200 flex justify-between items-center cursor-pointer"
         :class="
@@ -55,7 +55,7 @@
           {{ allLabel }}
         </li>
         <li
-          v-for="option in options"
+          v-for="option in normalizedOptions"
           :key="option"
           class="px-4 py-2 cursor-pointer transition-colors"
           :class="[
@@ -74,7 +74,8 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs, ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { toRefs, ref, computed } from "vue";
+import { useOutsideClick } from "../composables/useOutsideClick";
 const props = defineProps({
   id: String,
   label: String,
@@ -103,7 +104,21 @@ const emit = defineEmits(["update:modelValue"]);
 const { options, modelValue, isDark, id, label, allLabel, suffix } =
   toRefs(props);
 
+const normalizedOptions = computed(() => {
+  const raw = Array.isArray(options.value) ? options.value.map((o: any) => String(o).trim()) : [];
+  const unique = Array.from(new Set(raw));
+  if (unique.length && unique.every((v) => !Number.isNaN(Number(v)))) {
+    unique.sort((a, b) => Number(a) - Number(b));
+  }
+  return unique;
+});
+
 const open = ref(false);
+const root = ref<HTMLElement | null>(null);
+
+useOutsideClick(root, id ?? null, () => {
+  open.value = false;
+});
 
 const selectedLabel = computed(() => {
   if (!modelValue.value) return allLabel.value;
@@ -118,17 +133,7 @@ function select(val: string) {
   emit("update:modelValue", val);
   open.value = false;
 }
-function onClickOutside(e: MouseEvent) {
-  if (!(e.target as HTMLElement).closest(".filter-select")) {
-    open.value = false;
-  }
-}
-onMounted(() => {
-  document.addEventListener("mousedown", onClickOutside);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener("mousedown", onClickOutside);
-});
+
 </script>
 
 <style scoped>
