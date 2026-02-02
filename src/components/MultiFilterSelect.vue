@@ -1,16 +1,19 @@
 <template>
-  <div class="filter-select w-full flex flex-col items-start">
+  <div ref="root" class="filter-select w-full flex flex-col items-start">
     <label
-      :for="id"
-      class="block mb-2 text-base font-semibold tracking-wide"
+      class="block mb-2 text-base font-semibold tracking-wide cursor-default"
       :class="isDark ? 'text-white' : 'text-gray-800'"
-      >{{ label }}</label
-    >
+      >
+      {{ label }}
+      <span v-if="required" :class="isDark ? 'text-red-400 ml-1' : 'text-red-500 ml-1'" aria-hidden="true">*</span>
+    </label>
     <div class="relative w-full">
       <button
+        :id="id"
         type="button"
         class="appearance-none w-full rounded-lg px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-colors duration-200 flex justify-between items-center cursor-pointer"
-        :class="[
+          :aria-required="required"
+          :class="[
           isDark
             ? 'bg-gray-800 text-white border-gray-700'
             : 'bg-white text-gray-800 border-gray-300',
@@ -72,7 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs, ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { toRefs, ref, computed, onMounted } from "vue";
+import { useOutsideClick } from "../composables/useOutsideClick";
 const props = defineProps({
   id: String,
   label: String,
@@ -101,6 +105,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  required: {
+    type: Boolean,
+    default: false,
+  },
   suffix: {
     type: String,
     default: "",
@@ -125,6 +133,11 @@ const {
 } = toRefs(props);
 
 const open = ref(false);
+const root = ref<HTMLElement | null>(null);
+
+useOutsideClick(root, id ?? null, () => {
+  open.value = false;
+});
 
 const selectedValues = computed(() =>
   Array.isArray(modelValue.value) ? modelValue.value : [],
@@ -168,17 +181,7 @@ onMounted(() => {
     emit("update:modelValue", options.value.slice());
   }
 });
-function onClickOutside(e: MouseEvent) {
-  if (!(e.target as HTMLElement).closest(".filter-select")) {
-    open.value = false;
-  }
-}
-onMounted(() => {
-  document.addEventListener("mousedown", onClickOutside);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener("mousedown", onClickOutside);
-});
+
 </script>
 
 <style scoped>

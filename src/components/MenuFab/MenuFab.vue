@@ -51,9 +51,6 @@
           suffix="°"
           class="mt-4"
         />
-        <div class="w-full mt-4">
-          <button @click="$emit('open-add-marker')" class="w-full px-4 py-2 rounded-lg bg-green-600 text-white">Add marker</button>
-        </div>
       </div>
   </transition>
 </div>

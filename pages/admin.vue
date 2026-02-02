@@ -29,7 +29,7 @@
       </div>
     </div>
     <div v-else>
-      <div class="mb-4 flex items-center gap-3">
+      <div class="mb-4 flex items-center">
         <button
           class="px-3 py-1 rounded bg-blue-600 text-white"
           @click="loadProposed"
@@ -37,7 +37,7 @@
           Refresh
         </button>
         <button
-          class="px-3 py-1 rounded bg-gray-200 text-gray-800"
+          class="px-3 py-1 rounded bg-gray-200 text-gray-800 ml-3"
           @click="logout"
         >
           Logout
@@ -54,7 +54,7 @@
         <li
           v-for="p in proposedList"
           :key="p.id"
-          class="p-4 border rounded shadow-sm bg-white dark:bg-gray-800"
+          class="p-4 border rounded shadow-sm admin-card"
         >
           <div class="flex justify-between items-start gap-4">
             <div>
@@ -273,4 +273,13 @@ if (auth.value) await loadProposed();
 body.dark .bg-white {
   background: #111827;
 }
+
+/* Force admin card to be white with black border regardless of theme */
+.admin-card {
+  background: #ffffff !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+.admin-card a { color: #1d4ed8; }
 </style>
