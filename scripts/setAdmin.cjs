@@ -14,17 +14,23 @@ admin.initializeApp({
  * Prerequisites:
  * 1. Create a user in Firebase Console > Authentication > Users
  * 2. Copy the user's UID
- * 3. Replace "PASTE_YOUR_UID_HERE" below with the actual UID
- * 4. Ensure serviceAccountKey.json exists in this directory
+ * 3. Ensure serviceAccountKey.json exists in this directory
  * 
- * Run with: node scripts/setAdmin.cjs
+ * Run with:
+ *   UID=YOUR_USER_UID node scripts/setAdmin.cjs
+ * or:
+ *   node scripts/setAdmin.cjs YOUR_USER_UID
  */
 
-const uid = "tnK08vhrNeQqITnMkpNFHCu89N82"; // Replace with actual Firebase user UID
+const uid = process.argv[2] || process.env.FIREBASE_ADMIN_UID || process.env.UID;
 
-if (uid === "PASTE_YOUR_UID_HERE") {
-  console.error("\n❌ Error: Please replace 'PASTE_YOUR_UID_HERE' with a real Firebase user UID");
-  console.error("   You can find the UID in Firebase Console > Authentication > Users\n");
+if (!uid || uid === "PASTE_YOUR_UID_HERE") {
+  console.error("\n❌ Error: No Firebase user UID provided.");
+  console.error("   Usage:");
+  console.error("     UID=YOUR_USER_UID node scripts/setAdmin.cjs");
+  console.error("       or");
+  console.error("     node scripts/setAdmin.cjs YOUR_USER_UID\n");
+  console.error("   You can find the UID in Firebase Console > Authentication > Users.\n");
   process.exit(1);
 }
 
