@@ -9,8 +9,9 @@
         },
         "proposedMarkers": {
             ".read": "auth != null && auth.token.admin === true",
-            ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
+            ".write": "auth != null && auth.token.admin === true",
             "$proposedId": {
+                ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.admin === true)",
                 ".validate": "newData.hasChildren(['coords', 'title', 'layout', 'angle', 'status', 'submittedAt', 'submittedBy'])"
             }
         }

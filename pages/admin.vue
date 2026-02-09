@@ -163,25 +163,21 @@
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     <div class="flex flex-wrap gap-1">
-                      <span v-for="layout in marker.layout" :key="layout" class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">
+                      <span v-for="layout in (Array.isArray(marker.layout) ? marker.layout : (marker.layout ? [marker.layout] : []))" :key="layout" class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">
                         {{ layout }}
                       </span>
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {{ marker.angle?.join(', ') }}
+                    {{ Array.isArray(marker.angle) ? marker.angle.join(', ') : (marker.angle ?? '') }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div class="flex justify-end gap-2">
-                      <button @click="editMarker(marker)" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="Edit">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
+                    <div class="flex justify-end items-center gap-2">
+                      <button @click="editMarker(marker)" title="Edit" class="w-10 h-10 flex items-center justify-center rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <button @click="deleteMarker(marker)" :disabled="actioning[marker.id]" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50" title="Delete">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
+                      <button @click="deleteMarker(marker)" :disabled="actioning[marker.id]" title="Delete" class="w-10 h-10 flex items-center justify-center rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
                     </div>
                   </td>
@@ -197,7 +193,7 @@
         </div>
       </div>
 
-      <!-- Proposed Markers Tab -->
+      <!-- Proposed Markers Tab (table like Markers) -->
       <div v-if="activeTab === 'proposed'" class="space-y-4">
         <div class="flex items-center justify-between">
           <h2 :class="['text-xl font-semibold', isDark ? 'text-white' : 'text-gray-900']">Proposed Markers</h2>
@@ -211,53 +207,65 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4">
-          <div v-for="p in proposedList" :key="p.id" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex justify-between items-start gap-4">
-              <div class="flex-1">
-                <h3 :class="['text-lg font-semibold mb-2', isDark ? 'text-white' : 'text-gray-900']">{{ p.title }}</h3>
-                <div class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  Submitted by: {{ p.submittedBy || "unknown" }} • {{ new Date(p.submittedAt).toLocaleDateString() }}
-                </div>
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">Coords:</span>
-                    <span class="text-gray-600 dark:text-gray-400 ml-1">{{ p.coords?.lat }}, {{ p.coords?.lng }}</span>
-                  </div>
-                  <div>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">Layouts:</span>
-                    <span class="text-gray-600 dark:text-gray-400 ml-1">{{ (p.layout || []).join(", ") }}</span>
-                  </div>
-                  <div>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">Angles:</span>
-                    <span class="text-gray-600 dark:text-gray-400 ml-1">{{ (p.angle || []).join(", ") }}</span>
-                  </div>
-                  <div v-if="p.website">
-                    <span class="font-medium text-gray-700 dark:text-gray-300">Website:</span>
-                    <a :href="p.website" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline ml-1 truncate block">
-                      {{ p.website }}
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div class="flex flex-col gap-2">
-                <button @click="approve(p)" :disabled="actioning[p.id]" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium whitespace-nowrap">
-                  ✓ Approve
-                </button>
-                <button @click="editProposed(p)" class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors font-medium">
-                  ✎ Edit
-                </button>
-                <button @click="reject(p)" :disabled="actioning[p.id]" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium whitespace-nowrap">
-                  ✗ Reject
-                </button>
-                <div v-if="actionError[p.id]" class="text-xs text-red-500 dark:text-red-400 mt-1">
-                  {{ actionError[p.id] }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-if="!proposedList.length && !loading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
-            No proposed markers pending review.
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Coordinates</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Layout</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Angle</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submitted</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-for="p in proposedList" :key="p.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td class="px-6 py-4">
+                    <div :class="['text-sm font-medium', isDark ? 'text-white' : 'text-gray-900']">{{ p.title }}</div>
+                    <div v-if="p.website" class="text-xs text-blue-600 dark:text-blue-400 truncate max-w-xs">
+                      <a :href="p.website" target="_blank" class="hover:underline">{{ p.website }}</a>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {{ Array.isArray(p.coords) ? p.coords[0] : p.coords?.lat }},
+                    {{ Array.isArray(p.coords) ? p.coords[1] : p.coords?.lng }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="layout in (Array.isArray(p.layout) ? p.layout : (p.layout ? [p.layout] : []))" :key="layout" class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">
+                        {{ layout }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {{ Array.isArray(p.angle) ? p.angle.join(', ') : (p.angle ?? '') }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div>{{ p.submittedBy || 'unknown' }}</div>
+                    <div class="text-xs text-gray-400">{{ p.submittedAt ? new Date(p.submittedAt).toLocaleDateString() : '' }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end items-center gap-2">
+                      <button @click="approve(p)" :disabled="actioning[p.id]" title="Approve" class="w-10 h-10 flex items-center justify-center rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">
+                        <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 11l3 3L17 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <button @click="editProposed(p)" title="Edit" class="w-10 h-10 flex items-center justify-center rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <button @click="reject(p)" :disabled="actioning[p.id]" title="Reject" class="w-10 h-10 flex items-center justify-center rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                    </div>
+                    <div v-if="actionError[p.id]" class="text-xs text-red-500 dark:text-red-400 mt-1 text-right">{{ actionError[p.id] }}</div>
+                  </td>
+                </tr>
+                <tr v-if="!proposedList.length && !loading">
+                  <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No proposed markers pending review.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
