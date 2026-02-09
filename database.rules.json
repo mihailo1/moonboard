@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "markers": {
+      ".read": "true",
+      ".write": "auth != null && auth.token.admin === true",
+      "$markerId": {
+        ".validate": "newData.hasChildren(['coords', 'title', 'layout', 'angle'])"
+      }
+    },
+    "proposedMarkers": {
+      ".read": "auth != null && auth.token.admin === true",
+      ".write": "true",
+      "$proposedId": {
+        ".validate": "newData.hasChildren(['coords', 'title', 'layout', 'angle', 'status', 'submittedAt', 'submittedBy'])"
+      }
+    }
+  }
+}
