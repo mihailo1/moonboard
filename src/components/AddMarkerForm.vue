@@ -186,6 +186,7 @@ import type { Marker } from "~/types";
 import MultiFilterSelect from "~/src/components/MultiFilterSelect.vue";
 import { useMarkers } from "~/lib/composables/useMarkers";
 import { useRuntimeConfig } from "#app";
+import { useAuth } from "~/lib/composables/useAuth";
 const { markers } = useMarkers();
 const runtimeConfig = useRuntimeConfig();
 const dbUrl: string = String(
@@ -199,6 +200,14 @@ const submitError = ref("");
 const props = defineProps({
   show: { type: Boolean, default: false },
   googleApiKey: { type: String, default: "" },
+  // 'proposed' (default) posts to proposedMarkers, 'markers' posts to markers
+  target: { type: String, default: 'proposed' },
+  // when true, skip public submit quota checks (admin usage)
+  bypassQuota: { type: Boolean, default: false },
+  // initial object to prefill the form when editing
+  initial: { type: Object as () => any, default: null },
+  // explicit editing id (overrides initial.id)
+  editingId: { type: String, default: '' },
 });
 const emit = defineEmits(["close", "submit"]);
 
@@ -210,6 +219,7 @@ const selectedAngles = ref<string[]>([]);
 const website = ref("");
 const instagram = ref("");
 const { isDark } = useTheme();
+const { getIdToken } = useAuth();
 // Google Maps URL parsing state
 const googleUrl = ref("");
 const parsedTitle = ref("");
@@ -231,6 +241,35 @@ const googleLoaded = ref(false);
 let autocompleteService: any = null;
 let placesService: any = null;
 const resolving = ref(false);
+
+// Prefill when editing
+function prefillFromInitial() {
+  const init = props.initial;
+  if (!init) return;
+  // marker-style coords may be array or object
+  if (Array.isArray(init.coords)) {
+    lat.value = String(init.coords[0] ?? "");
+    lng.value = String(init.coords[1] ?? "");
+  } else if (init.coords && typeof init.coords === 'object') {
+    lat.value = String(init.coords.lat ?? init.coords[0] ?? "");
+    lng.value = String(init.coords.lng ?? init.coords[1] ?? "");
+  }
+  title.value = init.title || "";
+  selectedLayouts.value = Array.isArray(init.layout) ? init.layout.slice() : (init.layout ? String(init.layout).split(",").map(s=>s.trim()).filter(Boolean) : []);
+  selectedAngles.value = Array.isArray(init.angle) ? init.angle.map((a:any)=>String(a)) : (init.angle ? String(init.angle).split(",").map(s=>s.trim()).filter(Boolean) : []);
+  website.value = init.website || "";
+  instagram.value = init.instagram || "";
+  // If initial has URL, populate googleUrl
+  if (init.url) googleUrl.value = init.url;
+}
+
+// Watch for initial changes (when admin opens edit modal)
+watch(() => props.initial, () => {
+  if (props.initial) prefillFromInitial();
+});
+
+// Also prefill on mount if already provided
+if (props.initial) prefillFromInitial();
 
 const onEscClose = (e: KeyboardEvent) => {
   if (e.key === "Escape") {
@@ -634,13 +673,23 @@ async function onSubmit() {
   submitting.value = true;
   submitError.value = "";
   try {
-    const endpoint = `${dbUrl.replace(/\/$/, "")}/proposedMarkers.json`;
+    const collection = props.target === 'markers' ? 'markers' : 'proposedMarkers';
+    const editingKey = props.editingId || (props.initial && (props.initial.id || props.initial.key)) || '';
+    const isEditing = !!editingKey;
+    const baseEndpoint = isEditing
+      ? `${dbUrl.replace(/\/$/, "")}/${collection}/${editingKey}.json`
+      : `${dbUrl.replace(/\/$/, "")}/${collection}.json`;
+    // attach auth token when available (admin users)
+    const token = await getIdToken().catch(() => null);
+    const endpoint = token ? `${baseEndpoint}?auth=${token}` : baseEndpoint;
+    const method = isEditing ? 'PUT' : 'POST';
+    const body = props.target === 'markers' ? marker : proposed;
     const r = await fetch(endpoint, {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(proposed),
+      body: JSON.stringify(body),
     });
-    const resBody = await r.json();
+    const resBody = await r.json().catch(()=>({}));
     if (!r.ok) {
       submitError.value = `Failed to submit: ${resBody.error || r.statusText}`;
       return;
@@ -648,15 +697,21 @@ async function onSubmit() {
     // eslint-disable-next-line no-console
     console.log("Proposed marker uploaded, key=", resBody.name);
 
-    // increment quota, show success toast, emit submit and close
-    // final quota check (in case form was opened directly)
-    if (!canSubmitToday()) {
-      showToast('You have reached 5 submits today. Please try again tomorrow.', 'error')
-      return
+    // increment quota for public proposed submissions, skip when bypassQuota
+    if (!props.bypassQuota && props.target !== 'markers') {
+      if (!canSubmitToday()) {
+        showToast('You have reached 5 submits today. Please try again tomorrow.', 'error')
+        return
+      }
+      try { incrementSubmitCount() } catch (e) { /* ignore */ }
     }
-    try { incrementSubmitCount() } catch (e) { /* ignore */ }
-    showToast(`${titleText} — Thanks! Your submission will be reviewed and approved soon.`, 'success')
-    emit("submit", marker);
+    const toastMsg = props.target === 'markers'
+      ? `${titleText} — Marker saved.`
+      : `${titleText} — Thanks! Your submission will be reviewed and approved soon.`;
+    showToast(toastMsg, 'success')
+    // emit submit with id when available
+    const returnedKey = resBody.name || editingKey || '';
+    emit("submit", { ...marker, id: returnedKey });
     emit("close");
   } catch (err: any) {
     submitError.value = err?.message || String(err);
