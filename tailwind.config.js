@@ -10,30 +10,37 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                // Brand palettes (light/dark) — exposed for utilities
+                brand: {
+                    dark: {
+                        bg: '#37353E',    // dark background
+                        surface: '#44444E',
+                        text: '#D3DAD9',
+                    },
+                    light: {
+                        text: '#B6AE9F',
+                        surface: '#DEDED1',
+                        bg: '#FBF3D1',
+                    }
+                },
+                // keep existing useful tokens
                 primary: {
-                    DEFAULT: '#4F46E5', // Indigo-600
-                    dark: '#6366F1',   // Indigo-500
+                    DEFAULT: '#4F46E5',
+                    dark: '#6366F1',
                 },
                 secondary: {
-                    DEFAULT: '#F59E42', // Orange-400
-                    dark: '#FBBF24',   // Yellow-400
+                    DEFAULT: '#F59E42',
+                    dark: '#FBBF24',
                 },
-                background: {
-                    DEFAULT: '#FFFFFF',
-                    dark: '#181A1B',
-                },
-                surface: {
-                    DEFAULT: '#F3F4F6', // Gray-100
-                    dark: '#232526',
-                },
-                accent: {
-                    DEFAULT: '#10B981', // Emerald-500
-                    dark: '#34D399',   // Emerald-400
-                },
-                text: {
-                    DEFAULT: '#18181B', // Gray-900
-                    dark: '#F3F4F6',   // Gray-100
-                },
+            },
+            borderRadius: {
+                DEFAULT: '0.75rem',
+                sm: '0.375rem',
+                md: '0.5rem',
+                lg: '0.75rem',
+                xl: '1rem',
+                '2xl': '1.5rem',
+                '3xl': '2rem',
             },
         },
     },

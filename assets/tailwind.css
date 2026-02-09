@@ -3,18 +3,103 @@
 :root {
   --color-primary: #4F46E5;
   --color-secondary: #F59E42;
-  --color-background: #FFFFFF;
-  --color-surface: #F3F4F6;
-  --color-accent: #10B981;
-  --color-text: #18181B;
+  --color-background: #FBF3D1; /* light bg */
+  --color-surface: #DEDED1;    /* light surface */
+  --color-text: #3f3c37;       /* light text (darker for contrast) */
   --color-border: #E5E7EB;
 }
 .dark {
   --color-primary: #6366F1;
   --color-secondary: #FBBF24;
-  --color-background: #181A1B;
-  --color-surface: #232526;
-  --color-accent: #34D399;
-  --color-text: #F3F4F6;
+  --color-background: #37353E; /* dark bg */
+  --color-surface: #44444E;    /* dark surface */
+  --color-text: #D3DAD9;       /* dark text */
+}
+
+/* Apply variables to base elements */
+html, body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* Stronger rounding utilities fallback for non-tailwind parts */
+.rounded-theme-lg { border-radius: 0.75rem; }
+.rounded-theme-xl { border-radius: 1rem; }
+.rounded-theme-2xl { border-radius: 1.5rem; }
+
+/* Utility: card surface */
+.card-surface {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* Make common white cards follow theme surface color */
+.bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+/* Ensure borders/text on cards adapt slightly */
+.bg-white, .card-surface {
+  color: var(--color-text);
+}
+
+/* Map common Tailwind dark utility classes to theme variables so components using dark: utilities follow the theme */
+.dark .bg-gray-800,
+.dark .bg-gray-900,
+.dark .bg-gray-700,
+.dark .bg-white,
+.dark .bg-red-900\/,
+.dark .bg-blue-900\/, /* variants like bg-blue-900/30 may appear */
+.dark .bg-blue-900\/30 {
+  background-color: var(--color-surface) !important;
+}
+
+.dark .text-white,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark .text-gray-300,
+.dark .text-gray-200 {
+  color: var(--color-text) !important;
+}
+
+/* In light mode some components use the Tailwind `text-white` utility.
+   Make those use the theme text color for sufficient contrast. */
+html:not(.dark) .text-white {
+  color: var(--color-text) !important;
+}
+
+/* Also catch elements that include the Tailwind dark-variant classname
+   (e.g. class="text-gray-900 dark:text-white") — the classname remains
+   on the element and can force white via the generated CSS selector.
+   Use an attribute selector so we override those cases in light mode. */
+html:not(.dark) [class*="dark:text-white"] {
+  color: var(--color-text) !important;
+}
+
+/* Stronger catch-all for headings and common Tailwind classes in light mode */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6,
+html:not(.dark) .text-gray-900,
+html:not(.dark) .text-gray-800,
+html:not(.dark) .text-gray-700,
+html:not(.dark) .text-white,
+html:not(.dark) .dark\:text-white {
+  color: var(--color-text) !important;
+}
+
+.dark .border-gray-700,
+.dark .border-gray-600,
+.dark .border-gray-800,
+.dark .border-red-800,
+.dark .border-gray-200 {
+  border-color: rgba(255,255,255,0.06) !important;
 }
 
