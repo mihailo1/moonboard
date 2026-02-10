@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { VitePWA } from 'vite-plugin-pwa'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
@@ -22,8 +24,40 @@ export default defineNuxtConfig({
     injectPosition: 'first',
     viewer: true,
   },
+  app: {
+    head: {
+      link: [
+        { rel: 'manifest', href: '/site.webmanifest' },
+        { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'mask-icon', href: '/favicon.svg', color: '#fc8f58' }
+      ],
+      meta: [
+        { name: 'theme-color', content: '#fc8f58' }
+      ]
+    }
+  },
   // css: ['@/assets/tailwind.css'],
   vite: {
+    plugins: [
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'favicon-96x96.png'],
+        manifest: {
+          name: 'MoonMap',
+          short_name: 'Moons',
+          theme_color: '#fc8f58',
+          background_color: '#fc8f58',
+          display: 'standalone',
+          icons: [
+            { src: '/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+            { src: '/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          ]
+        }
+      })
+    ],
     optimizeDeps: {
       include: ['firebase/app', 'firebase/auth', 'firebase/database'],
     },
