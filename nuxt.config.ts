@@ -35,7 +35,9 @@ export default defineNuxtConfig({
         { rel: 'mask-icon', href: '/favicon.svg', color: '#fc8f58' }
       ],
       meta: [
-        { name: 'theme-color', content: '#fc8f58' }
+        { name: 'theme-color', content: '#fc8f58' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
       ]
     }
   },
