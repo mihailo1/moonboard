@@ -12,6 +12,8 @@
     <MenuFab
       v-model="selectedLayout"
       v-model:angleValue="selectedAngle"
+      v-model:countryValue="selectedCountry"
+      v-model:cityValue="selectedCity"
       v-model:isDark="isDark"
       @toggle-theme="toggleTheme"
       @open-add-marker="showAddForm = true"
@@ -52,6 +54,9 @@ let markerList: any[] = [];
 
 const selectedLayout = ref<string[]>([]);
 const selectedAngle = ref("");
+const selectedCountry = ref("");
+const prevCountry = ref("");
+const selectedCity = ref("");
 const showAddForm = ref(false);
 
 // baseMarkers holds the original markers plus any added by the user
@@ -84,7 +89,7 @@ const clearMarkers = () => {
 // Move iconColor and iconStyle outside renderMarkers
 const iconColor = "#444";
 const iconStyle =
-  "width:16px;height:16px;display:inline-block;vertical-align:middle;";
+  "width:18px;height:18px;display:inline-block;vertical-align:middle;";
 
 // Extract SVG marker icon generator
 function getDropIconSvg(fill: string) {
@@ -102,31 +107,111 @@ function getDropIcon(isDark: boolean) {
 }
 
 // Use Marker type for marker data
+function isValidHttpsUrl(u: unknown) {
+  if (!u || typeof u !== 'string') return false;
+  try {
+    const url = new URL(u);
+    return url.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
+// Heroicons-style globe for website links
+const WEB_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="${iconColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.038 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.038-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"/></svg>`;
+// Clean Instagram icon
+const INSTA_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="${iconColor}" stroke-width="1.7"/><circle cx="12" cy="12" r="4.5" stroke="${iconColor}" stroke-width="1.7"/><circle cx="17.8" cy="6.2" r="1.3" fill="${iconColor}"/></svg>`;
+// Google Maps pin — outline style to match globe and Instagram
+const GMAPS_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="${iconColor}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.2" stroke="${iconColor}" stroke-width="1.4"/></svg>`;
+
 const renderMarkers = (markers: Marker[]) => {
   if (!map) return;
   clearMarkers();
   const L = window.L;
   markerList = markers.map((data) => {
-    const webIcon = data.website
-      ? `<a href="${data.website}" target="_blank" rel="noopener" title="Website" style="margin-right:6px;${iconStyle}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" stroke="${iconColor}" stroke-width="2"/><path d="M10 1v18M1 10h18M3.5 3.5c2 2 11 2 13 0M3.5 16.5c2-2 11-2 13 0" stroke="${iconColor}" stroke-width="1.2"/></svg></a>`
-      : "";
-    const instaIcon = data.instagram
-      ? `<a href="${data.instagram}" target="_blank" rel="noopener" title="Instagram" style="${iconStyle}"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="14" height="14" rx="4" stroke="${iconColor}" stroke-width="2"/><circle cx="10" cy="10" r="3.5" stroke="${iconColor}" stroke-width="1.2"/><circle cx="14.2" cy="5.8" r="1" fill="${iconColor}"/></svg></a>`
-      : "";
-    const popupHtml = `
-      <div style=\"min-width:180px;\">
-        <div style=\"font-weight:bold;font-size:1.1em;\">${data.title}</div>
-        <hr style=\"margin:8px 0 6px 0; border:none; border-top:1px solid #e5e7eb;\" />
-        <div style=\"margin-top:2px;\">${Array.isArray(data.layout) && data.layout.length > 1 ? "Layouts" : "Layout"}: ${data.layout.join(", ")}</div>
-        <div style=\"margin-top:6px;\">Angle: ${data.angle.map((a: string) => a + "°").join(", ")}</div>
-        <div style=\"margin-top:10px;display:flex;align-items:center;gap:4px;\">${webIcon}${instaIcon}</div>
-      </div>
-    `;
+    // Build popup DOM nodes instead of interpolated HTML to avoid XSS
+    const container = document.createElement('div');
+    container.style.minWidth = '180px';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.style.fontWeight = 'bold';
+    titleDiv.style.fontSize = '1.1em';
+    titleDiv.textContent = String(data.title || '');
+    container.appendChild(titleDiv);
+
+    // City / country line
+    const location = [(data as any).city, (data as any).country].filter(Boolean).join(', ');
+    if (location) {
+      const locationDiv = document.createElement('div');
+      locationDiv.style.fontSize = '0.82em';
+      locationDiv.style.color = '#6b7280';
+      locationDiv.style.marginTop = '2px';
+      locationDiv.textContent = location;
+      container.appendChild(locationDiv);
+    }
+
+    const hr = document.createElement('hr');
+    hr.style.margin = '8px 0 6px 0';
+    hr.style.border = 'none';
+    hr.style.borderTop = '1px solid #e5e7eb';
+    container.appendChild(hr);
+
+    const layoutDiv = document.createElement('div');
+    layoutDiv.style.marginTop = '2px';
+    const layoutArr = Array.isArray(data.layout) ? data.layout : [];
+    layoutDiv.textContent = `${layoutArr.length > 1 ? 'Layouts' : 'Layout'}: ${layoutArr.join(', ')}`;
+    container.appendChild(layoutDiv);
+
+    const angleDiv = document.createElement('div');
+    angleDiv.style.marginTop = '6px';
+    const angleArr = Array.isArray(data.angle) ? data.angle : [];
+    angleDiv.textContent = `Angle: ${angleArr.map((a: any) => String(a) + '°').join(', ')}`;
+    container.appendChild(angleDiv);
+
+    const linksDiv = document.createElement('div');
+    linksDiv.style.marginTop = '10px';
+    linksDiv.style.display = 'flex';
+    linksDiv.style.alignItems = 'center';
+    linksDiv.style.gap = '4px';
+
+    if (data.website && isValidHttpsUrl(data.website)) {
+      const a = document.createElement('a');
+      a.href = String(data.website);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.title = 'Website';
+      a.style.cssText += iconStyle;
+      a.innerHTML = WEB_SVG;
+      linksDiv.appendChild(a);
+    }
+    if (data.instagram && isValidHttpsUrl(data.instagram)) {
+      const a = document.createElement('a');
+      a.href = String(data.instagram);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.title = 'Instagram';
+      a.style.cssText += iconStyle;
+      a.innerHTML = INSTA_SVG;
+      linksDiv.appendChild(a);
+    }
+    const gmapsUrl = (data as any).gmapsUrl;
+    if (gmapsUrl && isValidHttpsUrl(gmapsUrl)) {
+      const a = document.createElement('a');
+      a.href = String(gmapsUrl);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.title = 'Open in Google Maps';
+      a.style.cssText += iconStyle;
+      a.innerHTML = GMAPS_SVG;
+      linksDiv.appendChild(a);
+    }
+    container.appendChild(linksDiv);
+
     return L.marker(data.coords as [number, number], {
       icon: getDropIcon(isDark.value),
     })
       .addTo(map)
-      .bindPopup(popupHtml);
+      .bindPopup(container);
   });
 };
 
@@ -140,7 +225,43 @@ const filterMarkers = () => {
   if (selectedAngle.value) {
     filtered = filtered.filter((m) => m.angle.includes(selectedAngle.value));
   }
+  if (selectedCountry.value) {
+    filtered = filtered.filter((m) => (m as any).country === selectedCountry.value);
+  }
+  if (selectedCity.value) {
+    filtered = filtered.filter((m) => (m as any).city === selectedCity.value);
+  }
   renderMarkers(filtered);
+
+  // If a country filter is active, zoom the map to fit all markers in that country.
+  // This ensures users see the full extent of the selected country's markers.
+  if (selectedCountry.value && map && filtered && filtered.length) {
+    // Only animate when the selected country actually changes to avoid
+    // repeated jumps while toggling other filters.
+    if (selectedCountry.value !== prevCountry.value) {
+      try {
+        const L = window.L;
+        const latlngs = filtered.map((m) => {
+          const c = m.coords as any;
+          return L.latLng(c[0], c[1]);
+        });
+        const bounds = L.latLngBounds(latlngs);
+        // Prefer smooth flyToBounds when available, fallback to fitBounds.
+        const opts = { padding: [48, 48], maxZoom: 14, animate: true } as any;
+        if (typeof map.flyToBounds === "function") {
+          map.flyToBounds(bounds, opts);
+        } else {
+          map.fitBounds(bounds, opts);
+        }
+      } catch (e) {
+        // ignore any errors calculating bounds
+      }
+      prevCountry.value = selectedCountry.value;
+    }
+  } else {
+    // clear previous country when filter cleared so next selection animates
+    if (!selectedCountry.value) prevCountry.value = "";
+  }
 };
 
 function handleAddMarker(marker: Marker) {
@@ -148,7 +269,7 @@ function handleAddMarker(marker: Marker) {
   filterMarkers();
 }
 
-watch([selectedLayout, selectedAngle], filterMarkers);
+watch([selectedLayout, selectedAngle, selectedCountry, selectedCity], filterMarkers);
 
 // when fetched markers change populate baseMarkers
 watch(

@@ -8,6 +8,8 @@ dist
 
 # Node dependencies
 node_modules
+# specifically ignore functions node modules if present
+/functions/node_modules
 
 # Logs
 logs
