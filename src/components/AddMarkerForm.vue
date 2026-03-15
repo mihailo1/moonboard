@@ -20,7 +20,7 @@
     >
       <h3
         :class="[
-          'text-lg font-semibold mb-4',
+          'text-lg font-semibold mb-4 flex justify-center ',
           isDark ? 'text-white' : 'text-gray-900',
         ]"
       >
@@ -47,7 +47,7 @@
                   ? 'border-gray-700'
                   : 'border-gray-300',
             ]"
-            placeholder="https://www.google.com/maps/place/..."
+            placeholder="https://maps.app.goo.gl/..."
             :aria-invalid="!!urlError"
             :aria-describedby="urlError ? 'url-error' : undefined"
             aria-required="true"
@@ -65,6 +65,8 @@
           >
             Parsed: <strong>{{ parsedTitle || "—" }}</strong> ({{ parsedLat }},
             {{ parsedLng }})
+            <span v-if="parsedCity || parsedCountry"> · {{ [parsedCity, parsedCountry].filter(Boolean).join(', ') }}</span>
+            <span v-if="reverseGeocoding" class="ml-1 opacity-60">…</span>
           </div>
         </label>
         <div>
@@ -102,6 +104,47 @@
             {{ anglesError }}
           </div>
         </div>
+        <!-- Google Maps URL required explicitly in admin mode -->
+        <label
+          v-if="bypassQuota"
+          :class="[
+            'block text-base font-semibold tracking-wide',
+            isDark ? 'text-white' : 'text-gray-800',
+          ]"
+        >
+          Coordinates
+          <span :class="isDark ? 'text-red-400 ml-1' : 'text-red-500 ml-1'" aria-hidden="true">*</span>
+          <div class="flex gap-2 mt-1">
+            <input
+              v-model="lat"
+              type="text"
+              placeholder="Latitude"
+              class="w-1/2 rounded-lg px-3 py-2 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
+              :class="[
+                isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800',
+                coordsError
+                  ? 'border-red-500 ring-1 ring-red-300'
+                  : isDark ? 'border-gray-700' : 'border-gray-300',
+              ]"
+              :aria-invalid="!!coordsError"
+            />
+            <input
+              v-model="lng"
+              type="text"
+              placeholder="Longitude"
+              class="w-1/2 rounded-lg px-3 py-2 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
+              :class="[
+                isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800',
+                coordsError
+                  ? 'border-red-500 ring-1 ring-red-300'
+                  : isDark ? 'border-gray-700' : 'border-gray-300',
+              ]"
+              :aria-invalid="!!coordsError"
+            />
+          </div>
+          <div v-if="coordsError" class="text-sm text-red-500 mt-0.5">{{ coordsError }}</div>
+        </label>
+
         <label
           :class="[
             'block text-base font-semibold tracking-wide',
@@ -134,6 +177,30 @@
             "
           />
         </label>
+        <label
+          :class="[
+            'block text-base font-semibold tracking-wide',
+            isDark ? 'text-white' : 'text-gray-800',
+          ]"
+        >
+          Author
+          <input
+            v-model="author"
+            @input="onAuthorInput"
+            class="w-full rounded-lg px-3 py-2 mt-1 border transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-0"
+            :class="[
+              isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800',
+              authorError
+                ? 'border-red-500 ring-1 ring-red-300'
+                : isDark ? 'border-gray-700' : 'border-gray-300',
+            ]"
+            :aria-invalid="!!authorError"
+            :aria-describedby="authorError ? 'author-error' : undefined"
+          />
+          <div v-if="authorError" id="author-error" class="text-sm text-red-500 mt-0.5">
+            {{ authorError }}
+          </div>
+        </label>
       </div>
       <div class="mt-4 w-full flex flex-col sm:flex-row sm:justify-end items-center gap-3">
         <button
@@ -154,12 +221,12 @@
           </div>
           <button
             type="submit"
-            :disabled="submitting"
+            :disabled="submitting || resolving || reverseGeocoding"
             tabindex="0"
-            :aria-disabled="submitting"
+            :aria-disabled="submitting || resolving || reverseGeocoding"
             :class="[
               'w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 border-[0.5px] cursor-pointer',
-              submitting
+              (submitting || resolving || reverseGeocoding)
                 ? 'opacity-70 cursor-not-allowed pointer-events-none'
                 : isDark
                   ? 'bg-white text-gray-800 border-white hover:bg-gray-200 active:shadow-inner'
@@ -168,8 +235,13 @@
             @keydown.enter.prevent="onSubmit"
             @keydown.space.prevent="onSubmit"
           >
-            <span v-if="submitting">Submitting…</span>
-            <span v-else>Submit</span>
+            <svg v-if="resolving || reverseGeocoding" class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+            </svg>
+            <span v-if="submitting">{{ isEditing ? 'Saving…' : 'Submitting…' }}</span>
+            <span v-else-if="resolving || reverseGeocoding">Parsing…</span>
+            <span v-else>{{ isEditing ? 'Save' : 'Submit' }}</span>
           </button>
         </div>
       </div>
@@ -211,6 +283,9 @@ const props = defineProps({
 });
 const emit = defineEmits(["close", "submit"]);
 
+// True when editing an existing entry (drives Save vs Submit label)
+const isEditing = computed(() => !!(props.editingId || (props.initial && (props.initial.id || props.initial.key))))
+
 const title = ref("");
 const lat = ref("");
 const lng = ref("");
@@ -218,6 +293,7 @@ const selectedLayouts = ref<string[]>([]);
 const selectedAngles = ref<string[]>([]);
 const website = ref("");
 const instagram = ref("");
+const author = ref("");
 const { isDark } = useTheme();
 const { getIdToken } = useAuth();
 // Google Maps URL parsing state
@@ -225,10 +301,46 @@ const googleUrl = ref("");
 const parsedTitle = ref("");
 const parsedLat = ref("");
 const parsedLng = ref("");
+// Reverse geocode state
+const parsedCity = ref("");
+const parsedCountry = ref("");
+const reverseGeocoding = ref(false);
 // per-field errors for consistent styling
 const urlError = ref("");
 const layoutsError = ref("");
 const anglesError = ref("");
+const authorError = ref("");
+const coordsError = ref("");
+
+function isUrl(value: string): boolean {
+  return /https?:\/\/|www\./i.test(value.trim());
+}
+
+/**
+ * Strip query-string (and hash) from a URL, keeping origin + pathname only.
+ * Returns the original string unchanged if it can't be parsed as a URL.
+ */
+function cleanUrl(raw: string): string {
+  if (!raw) return raw;
+  const trimmed = raw.trim();
+  try {
+    const u = new URL(trimmed);
+    // origin + pathname, normalised (no trailing query/hash)
+    const clean = u.origin + u.pathname;
+    // remove any trailing slash that wasn't in the original, except root
+    return clean.endsWith('/') && u.pathname !== '/' ? clean.replace(/\/$/, '') : clean;
+  } catch {
+    return trimmed;
+  }
+}
+
+function onAuthorInput() {
+  if (!props.bypassQuota && isUrl(author.value)) {
+    authorError.value = "Please enter a name, not a URL.";
+  } else {
+    authorError.value = "";
+  }
+}
 // Search state
 const searchQuery = ref("");
 const suggestions = ref<any[]>([]);
@@ -259,8 +371,12 @@ function prefillFromInitial() {
   selectedAngles.value = Array.isArray(init.angle) ? init.angle.map((a:any)=>String(a)) : (init.angle ? String(init.angle).split(",").map(s=>s.trim()).filter(Boolean) : []);
   website.value = init.website || "";
   instagram.value = init.instagram || "";
+  author.value = init.author || "";
+  // Restore city/country from stored data so they survive round-trips
+  parsedCity.value = init.city || "";
+  parsedCountry.value = init.country || "";
   // If initial has URL, populate googleUrl
-  if (init.url) googleUrl.value = init.url;
+  if (init.url || init.gmapsUrl) googleUrl.value = init.url || init.gmapsUrl || "";
 }
 
 // Watch for initial changes (when admin opens edit modal)
@@ -428,32 +544,54 @@ async function resolveCurrentUrl() {
   parsedTitle.value = "";
   parsedLat.value = "";
   parsedLng.value = "";
+  parsedCity.value = "";
+  parsedCountry.value = "";
   resolving.value = true;
   try {
-    const shortHostPattern =
-      /(^|:\/\/)(maps.app.goo.gl|goo\.gl|goo\.gl\/maps)/i;
-    if (shortHostPattern.test(url)) {
-      const resolved = await resolveShortUrl(url);
-      if (resolved) {
-        parseGoogleMapsUrl(resolved);
+    // Always try the server-side resolver: it handles both short URLs (redirects)
+    // and long URLs (HTML scraping for high-precision coords).
+    const serverResult = await resolveViaServer(url);
+    if (serverResult) {
+      // Use server-scraped parsed data when available (higher precision)
+      if (serverResult.parsed?.lat) {
+        parsedLat.value = serverResult.parsed.lat;
+        parsedLng.value = serverResult.parsed.lng || "";
+        if (serverResult.parsed.title) parsedTitle.value = serverResult.parsed.title;
+        lat.value = parsedLat.value;
+        lng.value = parsedLng.value;
       } else {
-        urlError.value =
-          "Could not resolve short Google Maps URL. Please paste the full Maps URL (Share → Copy link).";
+        // Server returned finalUrl but no coords in parsed — try client-side parsing
+        parseGoogleMapsUrl(serverResult.finalUrl);
+      }
+      if (!parsedLat.value && !parsedLng.value) {
+        urlError.value = "Could not extract coordinates from URL.";
+      } else {
+        urlError.value = "";
       }
     } else {
-      try {
-        parseGoogleMapsUrl(url);
-      } catch (e) {
-        urlError.value = "Could not parse URL";
+      // Server unavailable — fall back to purely client-side parsing
+      const shortHostPattern = /(^|:\/\/)(maps.app.goo.gl|goo\.gl|goo\.gl\/maps)/i;
+      if (shortHostPattern.test(url)) {
+        urlError.value = "Could not resolve short Google Maps URL. Please paste the full Maps URL (Share → Copy link).";
+      } else {
+        try {
+          parseGoogleMapsUrl(url);
+        } catch (e) {
+          urlError.value = "Could not parse URL";
+        }
       }
     }
   } finally {
     resolving.value = false;
   }
+  // Kick off reverse geocode once coords are known
+  if (parsedLat.value && parsedLng.value) {
+    fetchReverseGeocode(parsedLat.value, parsedLng.value);
+  }
 }
 
-async function resolveShortUrl(url: string) {
-  // Use server-side resolver to avoid browser CORS issues. Falls back to client-side fetch if server fails.
+/** Calls the server-side resolver which follows redirects and scrapes HTML. */
+async function resolveViaServer(url: string): Promise<{ finalUrl: string; parsed: { lat?: string; lng?: string; title?: string } } | null> {
   try {
     const res = await fetch("/api/resolve-map-url", {
       method: "POST",
@@ -462,15 +600,11 @@ async function resolveShortUrl(url: string) {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    if (data && data.success && data.finalUrl) return data.finalUrl;
-  } catch (e) {
-    // ignore and try client-side as last resort
-  }
-  try {
-    const res2 = await fetch(url, { method: "GET", redirect: "follow" });
-    if (res2 && (res2 as Response).url) return (res2 as Response).url;
-  } catch (e) {
-    // ignore
+    if (data && data.success && data.finalUrl) {
+      return { finalUrl: data.finalUrl, parsed: data.parsed || {} };
+    }
+  } catch {
+    // ignore — fall through to null
   }
   return null;
 }
@@ -504,6 +638,28 @@ function parseGoogleMapsUrl(url: string) {
     urlError.value = "Could not extract coordinates from URL.";
   } else {
     urlError.value = "";
+    // Populate manual lat/lng inputs so admin coordinate fields show parsed values
+    lat.value = parsedLat.value;
+    lng.value = parsedLng.value;
+  }
+}
+
+async function fetchReverseGeocode(latVal: string, lngVal: string) {
+  parsedCity.value = "";
+  parsedCountry.value = "";
+  reverseGeocoding.value = true;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latVal}&lon=${lngVal}&format=json&accept-language=en`,
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    parsedCity.value = data?.address?.city || data?.address?.town || data?.address?.village || data?.address?.municipality || "";
+    parsedCountry.value = data?.address?.country || "";
+  } catch {
+    // silently ignore — city/country is best-effort
+  } finally {
+    reverseGeocoding.value = false;
   }
 }
 
@@ -588,6 +744,8 @@ watch(
       parsedTitle.value = "";
       parsedLat.value = "";
       parsedLng.value = "";
+      parsedCity.value = "";
+      parsedCountry.value = "";
       // parseError removed; ensure parse-related fields cleared via specific refs
       if (urlResolveTimer) {
         clearTimeout(urlResolveTimer);
@@ -597,10 +755,13 @@ watch(
       selectedAngles.value = [];
       website.value = "";
       instagram.value = "";
+      author.value = "";
       // clear field errors
       urlError.value = "";
       layoutsError.value = "";
       anglesError.value = "";
+      authorError.value = "";
+      coordsError.value = "";
     }
   },
 );
@@ -626,6 +787,14 @@ function onUpdateAnglesClear(val: string[]) {
 }
 
 async function onSubmit() {
+  // Validate author field — no URLs allowed in public form
+  if (!props.bypassQuota && isUrl(author.value)) {
+    authorError.value = "Please enter a name, not a URL.";
+    return;
+  } else {
+    authorError.value = "";
+  }
+
   // prefer parsed coords from Google Maps URL, fallback to manual lat/lng
   const latitude = parsedLat.value
     ? parseFloat(parsedLat.value)
@@ -634,10 +803,36 @@ async function onSubmit() {
     ? parseFloat(parsedLng.value)
     : parseFloat(lng.value);
   const titleText = parsedTitle.value || title.value || "";
+
+  // Admin forms: require coordinates and Google Maps URL explicitly
+  if (props.bypassQuota) {
+    const manualLat = parseFloat(lat.value);
+    const manualLng = parseFloat(lng.value);
+    const hasCoords = (parsedLat.value && parsedLng.value) ||
+      (!Number.isNaN(manualLat) && !Number.isNaN(manualLng));
+    if (!hasCoords) {
+      coordsError.value = "Please provide valid coordinates (latitude and longitude).";
+      return;
+    } else {
+      coordsError.value = "";
+    }
+    if (!googleUrl.value || !googleUrl.value.trim()) {
+      urlError.value = "Please provide the Google Maps URL.";
+      return;
+    }
+  }
+
   // Validate required fields: parsed coordinates, at least one layout and one angle, and a title
   if (!titleText || Number.isNaN(latitude) || Number.isNaN(longitude)) {
     urlError.value = "Please provide a valid Google Maps URL";
     return;
+  }
+  // For proposed submissions, require the Google Maps URL (`gmapsUrl`)
+  if (!props.bypassQuota && props.target !== 'markers') {
+    if (!googleUrl.value || !googleUrl.value.trim()) {
+      urlError.value = 'Please provide the Google Maps share URL.';
+      return;
+    }
   }
   if (!selectedLayouts.value || selectedLayouts.value.length === 0) {
     layoutsError.value = "Please select at least one layout.";
@@ -647,28 +842,49 @@ async function onSubmit() {
     anglesError.value = "Please select at least one angle.";
     return;
   }
+  // Clean URLs — strip tracking query params before storing
+  const cleanGmapsUrl = googleUrl.value ? cleanUrl(googleUrl.value) : undefined;
+  const cleanWebsite = website.value ? cleanUrl(website.value) : '';
+  const cleanInstagram = instagram.value ? cleanUrl(instagram.value) : '';
+
   const marker: Marker = {
     coords: [latitude, longitude],
     title: titleText,
     layout: selectedLayouts.value.slice(),
     angle: selectedAngles.value.slice(),
-    website: website.value,
-    instagram: instagram.value,
+    website: cleanWebsite,
+    instagram: cleanInstagram,
+    gmapsUrl: cleanGmapsUrl,
+    ...(author.value.trim() ? { author: author.value.trim() } : {}),
+    ...(parsedCity.value ? { city: parsedCity.value } : {}),
+    ...(parsedCountry.value ? { country: parsedCountry.value } : {}),
   };
 
   // Build proposedMarker payload per required server schema
   const proposed = {
-    url: googleUrl.value || "",
+    url: cleanGmapsUrl || "",
+    gmapsUrl: cleanGmapsUrl || '-',
     title: titleText,
     coords: { lat: latitude, lng: longitude },
     layout: selectedLayouts.value.slice(),
     angle: selectedAngles.value.map((a) => Number(a)),
-    website: website.value || undefined,
-    instagram: instagram.value || undefined,
+    website: cleanWebsite || undefined,
+    instagram: cleanInstagram || undefined,
     status: "pending",
     submittedAt: Date.now(),
     submittedBy: "anonymous",
+    ...(author.value.trim() ? { author: author.value.trim() } : {}),
+    ...(parsedCity.value ? { city: parsedCity.value } : {}),
+    ...(parsedCountry.value ? { country: parsedCountry.value } : {}),
   };
+
+  // quota check must happen before performing the DB write to avoid bypass
+  if (!props.bypassQuota && props.target !== 'markers') {
+    if (!canSubmitToday()) {
+      showToast('You have reached 5 submits today. Please try again tomorrow.', 'error');
+      return;
+    }
+  }
 
   submitting.value = true;
   submitError.value = "";

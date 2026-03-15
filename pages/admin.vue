@@ -274,7 +274,7 @@
     <!-- Marker Form Modal (reused AddMarkerForm component) -->
     <AddMarkerForm
       :show="showMarkerForm"
-      :googleApiKey="String(runtimeConfig.public?.firebaseGoogleApiKey || '')"
+      :googleApiKey="String(runtimeConfig.public?.googleMapsApiKey || '')"
       :target="formTarget"
       :bypassQuota="true"
       :initial="editingMarker"
@@ -512,6 +512,7 @@ async function saveMarker() {
       angle: markerForm.value.angle.split(",").map((s) => s.trim()).filter(Boolean),
       website: markerForm.value.website || "",
       instagram: markerForm.value.instagram || "",
+      gmapsUrl: (markerForm.value as any).gmapsUrl || '-',
     };
 
     const token = await getIdToken();
@@ -574,6 +575,7 @@ async function deleteMarker(marker: any) {
 }
 
 async function approve(item: any) {
+  if (!confirm(`Approve "${item.title}" and move it to the main markers list?`)) return;
   actionError.value[item.id] = "";
   actioning.value[item.id] = true;
   
@@ -585,6 +587,10 @@ async function approve(item: any) {
       angle: (item.angle || []).map((a: any) => String(a)),
       website: item.website || "",
       instagram: item.instagram || "",
+      gmapsUrl: item.gmapsUrl || item.url || '-',
+      ...(item.author ? { author: item.author } : {}),
+      ...(item.city ? { city: item.city } : {}),
+      ...(item.country ? { country: item.country } : {}),
     };
 
     const token = await getIdToken();

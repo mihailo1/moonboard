@@ -14,6 +14,7 @@ export default defineNuxtConfig({
       firebaseMessagingSenderId: process.env.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
       firebaseAppId: process.env.NUXT_PUBLIC_FIREBASE_APP_ID || '',
       firebaseDatabaseUrl: process.env.NUXT_PUBLIC_FIREBASE_DB || 'https://moon-30159-default-rtdb.europe-west1.firebasedatabase.app',
+      googleMapsApiKey: process.env.NUXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '',
     },
   },
   tailwindcss: {
@@ -26,6 +27,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
+      title: 'Moons',
       link: [
         { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' },

@@ -51,6 +51,28 @@
           suffix="°"
           class="mt-4"
         />
+        <FilterSelect
+          v-if="countries.length > 0"
+          id="country-select"
+          :label="'Country'"
+          :allLabel="'All countries'"
+          :options="countries"
+          :modelValue="countryValue"
+          @update:modelValue="v => { $emit('update:countryValue', v); $emit('update:cityValue', '') }"
+          :isDark="isDark"
+          class="mt-4"
+        />
+        <FilterSelect
+          v-if="showCityFilter"
+          id="city-select"
+          :label="'Place'"
+          :allLabel="'All places'"
+          :options="citiesForCountry"
+          :modelValue="cityValue"
+          @update:modelValue="$emit('update:cityValue', $event)"
+          :isDark="isDark"
+          class="mt-4"
+        />
       </div>
   </transition>
 </div>
@@ -72,9 +94,17 @@ const props = defineProps({
   angleValue: {
     type: String,
     default: ''
-  }
+  },
+  countryValue: {
+    type: String,
+    default: ''
+  },
+  cityValue: {
+    type: String,
+    default: ''
+  },
 })
-const emit = defineEmits(['update:modelValue', 'toggle-theme', 'update:angleValue', 'open-add-marker'])
+const emit = defineEmits(['update:modelValue', 'toggle-theme', 'update:angleValue', 'update:countryValue', 'update:cityValue', 'open-add-marker'])
 
 const { isDark } = useTheme()
 const menuOpen = ref(false)
@@ -90,6 +120,20 @@ const angles = computed(() => {
   const all = (fetchedMarkers.value || []).flatMap((m: any) => m.angle || [])
   return Array.from(new Set(all))
 })
+const countries = computed(() => {
+  const all = (fetchedMarkers.value || []).map((m: any) => m.country).filter(Boolean)
+  return Array.from(new Set(all)).sort() as string[]
+})
+// Cities filtered to the selected country (only used when a country is selected)
+const citiesForCountry = computed(() => {
+  const src = props.countryValue
+    ? (fetchedMarkers.value || []).filter((m: any) => m.country === props.countryValue)
+    : fetchedMarkers.value || []
+  const all = src.map((m: any) => m.city).filter(Boolean)
+  return Array.from(new Set(all)).sort() as string[]
+})
+// Show city dropdown only when a country is selected and it has more than one city
+const showCityFilter = computed(() => props.countryValue !== '' && citiesForCountry.value.length > 1)
 
 onMounted(() => {
   mounted.value = true
